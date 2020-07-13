@@ -1,3 +1,6 @@
 [submodule "packer-builder-arm"]
 	path = packer-builder-arm
 	url = https://github.com/mkaczanowski/packer-builder-arm
+[submodule "packer-post-processor-flasher"]
+	path = packer-post-processor-flasher
+	url = https://github.com/mkaczanowski/packer-post-processor-flasher
