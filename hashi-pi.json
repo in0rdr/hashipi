@@ -1,0 +1,167 @@
+{
+  "variables": {
+    "hostname": "HashiPi0",
+    "username": "pi",
+    "authorized_keys": "",
+    "img_url": "http://os.archlinuxarm.org/os/ArchLinuxARM-rpi-latest.tar.gz",
+    "img_name": "raspi.img",
+    "flash_device_path": null,
+    "img_size": "3G",
+    "consul_version": "1.8.0",
+    "consul_arch": "armelv5",
+    "consul_encrypt": null,
+    "consul_tls_ca": null,
+    "consul_tls_certs": null,
+    "consul_retry_join": "\"HashiPi0\", \"HashiPi1\", \"HashiPi2\"",
+    "nomad_version": "0.12.0",
+    "nomad_binary_path": "./bin",
+    "nomad_arch": "arm",
+    "vault_version": "1.5.0",
+    "vault_arch": "arm",
+    "vault_tls_ca_cert": "./tls/vault/ca/vault_ca.pem",
+    "vault_tls_ca_key": "./tls/vault/ca/vault_ca.key",
+    "vault_tls_subj_alt_name": ""
+  },
+  "sensitive-variables": [
+    "consul_encrypt",
+    "consul_tls_server_key",
+    "consul_tls_client_key",
+    "consul_tls_cli_key"
+  ],
+  "builders": [{
+    "type": "arm",
+    "file_urls" : ["{{ user `img_url` }}"],
+    "file_checksum_url": "{{ user `img_url` }}.md5",
+    "file_checksum_type": "md5",
+    "file_unarchive_cmd": ["tar", "-xzf", "$ARCHIVE_PATH", "-C", "$MOUNTPOINT"],
+    "file_target_extension": "tar.gz",
+    "image_build_method": "new",
+    "image_path": "{{ user `img_name` }}",
+    "image_size": "{{ user `img_size` }}",
+    "image_type": "dos",
+    "image_partitions": [
+      {
+        "name": "boot",
+        "type": "c",
+        "start_sector": "8192",
+        "filesystem": "vfat",
+        "size": "256M",
+        "mountpoint": "/boot"
+      },
+      {
+        "name": "root",
+        "type": "83",
+        "start_sector": "532480",
+        "filesystem": "ext4",
+        "size": "0",
+        "mountpoint": "/"
+      }
+    ],
+    "qemu_binary_source_path": "/usr/bin/qemu-arm-static",
+    "qemu_binary_destination_path": "/usr/bin/qemu-arm-static"
+  }],
+  "provisioners": [
+    {
+      "type": "file",
+      "source": "packer-builder-arm/scripts/resizerootfs/resizerootfs",
+      "destination": "/tmp/resizerootfs"
+    },
+    {
+      "type": "file",
+      "source": "packer-builder-arm/scripts/resizerootfs/resizerootfs.service",
+      "destination": "/tmp/resizerootfs.service"
+    },
+    {
+      "type": "shell",
+      "script": "bootstrap.sh",
+      "environment_vars": [
+        "HOSTNAME={{ user `hostname` }}",
+        "USERNAME={{ user `username` }}",
+        "AUTHORIZED_KEYS={{ user `authorized_keys` }}"
+      ]
+    },
+    {
+      "type": "file",
+      "source": "hashicorp.asc",
+      "destination": "/home/{{ user `username` }}/hashicorp.asc"
+    },
+    {
+      "type": "shell",
+      "inline": ["mkdir /tmp/tls"]
+    },
+    {
+      "type": "file",
+      "source": "{{ user `consul_tls_ca` }}",
+      "destination": "/tmp/tls/consul-agent-ca.pem"
+    },
+    {
+      "type": "file",
+      "source": "{{ user `consul_tls_certs` }}",
+      "destination": "/tmp/tls/"
+    },
+    {
+      "type": "shell",
+      "script": "consul.sh",
+      "remote_folder": "/home/{{ user `username` }}",
+      "environment_vars": [
+        "USERNAME={{ user `username` }}",
+        "CONSUL_VERSION={{ user `consul_version` }}",
+        "CONSUL_ARCH={{ user `consul_arch` }}",
+        "CONSUL_ENCRYPT={{ user `consul_encrypt` }}",
+        "CONSUL_RETRY_JOIN={{ user `consul_retry_join` }}"
+      ]
+    },
+    {
+      "type": "file",
+      "source": "./bin",
+      "destination": "/home/{{ user `username` }}/"
+    },
+    {
+      "type": "shell",
+      "script": "nomad.sh",
+      "remote_folder": "/home/{{ user `username` }}",
+      "environment_vars": [
+        "USERNAME={{ user `username` }}",
+        "NOMAD_VERSION={{ user `nomad_version` }}",
+        "NOMAD_BINARY_PATH={{ user `nomad_binary_path` }}",
+        "NOMAD_ARCH={{ user `nomad_arch` }}"
+      ]
+    },
+    {
+      "destination": "/tmp/vault_ca.pem",
+      "source": "{{ user `vault_tls_ca_cert` }}",
+      "type": "file"
+    },
+    {
+      "destination": "/tmp/vault_ca.key",
+      "source": "{{ user `vault_tls_ca_key` }}",
+      "type": "file"
+    },
+    {
+      "type": "shell",
+      "script": "vault.sh",
+      "remote_folder": "/home/{{ user `username` }}",
+      "environment_vars": [
+        "USERNAME={{ user `username` }}",
+        "HOSTNAME={{ user `hostname` }}",
+        "VAULT_VERSION={{ user `vault_version` }}",
+        "VAULT_ARCH={{ user `vault_arch` }}",
+        "VAULT_TLS_CA_CERT=/tmp/vault_ca.pem",
+        "VAULT_TLS_CA_KEY=/tmp/vault_ca.key",
+        "VAULT_TLS_SUBJ_ALT_NAME={{ user `vault_tls_subj_alt_name` }}"
+      ]
+    },
+    {
+      "type": "shell",
+      "inline": ["mv /etc/resolv.conf.bck /etc/resolv.conf"]
+    }
+  ],
+  "post-processors": [
+    {
+      "type": "flasher",
+      "device": "{{ user `flash_device_path` }}",
+      "block_size": "4096",
+      "interactive": true
+    }
+  ]
+}

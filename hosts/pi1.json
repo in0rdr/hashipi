@@ -1,0 +1,13 @@
+{
+    "hostname": "pi1",
+    "username": "pi",
+    "authorized_keys": "",
+    "img_url": "http://os.archlinuxarm.org/os/ArchLinuxARM-rpi-2-latest.tar.gz",
+    "img_name": "HashiPi-pi1.img",
+    "flash_device_path": "/dev/sda",
+    "consul_arch": "armhfv6",
+    "consul_encrypt": "",
+    "consul_tls_ca": "./tls/consul/consul-agent-ca.pem",
+    "consul_tls_certs": "./tls/consul/certs/",
+    "consul_retry_join": "\"pi0\", \"pi1\", \"pi2\""
+}
