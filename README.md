@@ -52,9 +52,13 @@ The Packer JSON supports a few arguments for Vault server certificates:
 * `vault_tls_subj_alt_name`: Comma seperated list of Subject Alternative Names (SAN) for the self-signed certificates, e.g., `DNS:vault.example.com`
 
 
-## Consul ACL's (for Vault)
+## ACL's
 
 tbd
+
+* ACLs for Consul
+* ACLs for Nomad
+* TLS and Gossip encryption for Nomad
 
 ## Consul Encryption
 
